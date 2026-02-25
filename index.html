@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點擊紅鼻子 - 精準定位版</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: 'Microsoft JhengHei', sans-serif;
+    }
+
+    /* 主容器：左邊文字，右邊圖片 */
+    #container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+    }
+
+    /* 左側提示 (縮小至 75%) */
+    #instruction {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 30px;
+      color: #ff4d4d;
+      font-size: 2.25rem;
+      font-weight: bold;
+      z-index: 100;
+      text-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
+      pointer-events: none;
+    }
+
+    .arrow {
+      font-size: 3rem;
+      margin-left: 15px;
+      animation: bounceX 0.8s infinite;
+    }
+
+    @keyframes bounceX {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(20px); }
+    }
+
+    /* 右側圖片區域：這是 0.png 的家 */
+    #character-area {
+      flex: 1;
+      height: 100%;
+      position: relative; /* 按鈕定位的基準 */
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    #bg-character {
+      height: 80%;
+      max-width: 90%;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* 紅鼻子按鈕：現在鎖定在 character-area 內 */
+    #drawButton {
+      position: absolute;
+      /* 調整以下數值直到對準 0.png 的鼻子 */
+      top: 50%; 
+      left: 25%; 
+      transform: translate(-50%, -50%); /* 確保是以中心點定位 */
+      width: 130px;
+      height: 130px;
+      background: radial-gradient(circle at 35% 35%, #ff5555, #cc0000 60%, #660000);
+      border: 5px solid #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 200;
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
+      outline: none;
+      transition: transform 0.1s;
+    }
+
+    #drawButton:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    /* 再一次提示：右邊垂直 */
+    #reset-tip {
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      color: #fff;
+      font-size: 1.125rem;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 10px;
+      z-index: 600;
+      display: none;
+      background: rgba(255,255,255,0.1);
+      padding: 15px 8px;
+      border-radius: 30px;
+      backdrop-filter: blur(5px);
+      pointer-events: none;
+    }
+
+    /* 結果全螢幕 */
+    #resultWrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      z-index: 1000;
+    }
+
+    #resultImage {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    #resultWrapper.active #resultImage {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    #flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      opacity: 0;
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+      40%, 60% { transform: translate3d(8px, 0, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="flash"></div>
+  
+  <div id="container">
+    <div id="instruction">
+      請按紅鼻子 <span class="arrow">→</span>
+    </div>
+    <div id="character-area">
+      <!-- 放在根目錄的 0.png -->
+      <img id="bg-character" src="https://crazy-dream.github.io/abstract-Umimiya-Natsu./0.png" alt="Character">
+      <!-- 紅鼻子按鈕 -->
+      <button id="drawButton"></button>
+    </div>
+  </div>
+
+  <div id="reset-tip">再點擊一次返回</div>
+
+  <div id="resultWrapper">
+    <img id="resultImage" src="" alt="Joker Result">
+  </div>
+
+  <canvas id="fireworksCanvas"></canvas>
+
+  <script>
+    const drawBtn = document.getElementById('drawButton');
+    const resultWrapper = document.getElementById('resultWrapper');
+    const resultImg = document.getElementById('resultImage');
+    const resetTip = document.getElementById('reset-tip');
+    const flash = document.getElementById('flash');
+    const canvas = document.getElementById('fireworksCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let particles = [];
+    let isRevealed = false;
+
+    const baseUrl = "https://crazy-dream.github.io/abstract-Umimiya-Natsu./";
+    const jokerFolder = "joker/";
+    
+    const imageFiles = [
+      "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "1000018659.jpg", "Am I (1).jpg"
+    ];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function speakJokerLoud() {
+      window.speechSynthesis.cancel();
+      const msg = new SpeechSynthesisUtterance();
+      msg.text = "Joker";
+      msg.lang = "en-US";
+      msg.pitch = 2.0; 
+      msg.rate = 1.9;  
+      msg.volume = 1.0; 
+      window.speechSynthesis.speak(msg);
+    }
+
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * 15 + 5;
+        this.vx = Math.cos(angle) * velocity;
+        this.vy = Math.sin(angle) * velocity;
+        this.gravity = 0.3;
+        this.alpha = 1;
+        this.size = Math.random() * 5 + 2;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.alpha -= 0.015;
+      }
+      draw() {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].alpha <= 0) particles.splice(i, 1);
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    function triggerExplosion(x, y) {
+      for (let i = 0; i < 100; i++) {
+        particles.push(new Particle(x, y));
+      }
+    }
+
+    drawBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isRevealed) return;
+
+      speakJokerLoud();
+
+      flash.style.opacity = '1';
+      document.body.classList.add('shake');
+      setTimeout(() => { 
+        flash.style.opacity = '0'; 
+        flash.style.transition = 'opacity 1s'; 
+        document.body.classList.remove('shake');
+      }, 50);
+
+      const randomFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+      resultImg.src = baseUrl + jokerFolder + randomFile;
+      
+      resultWrapper.style.display = 'flex';
+      setTimeout(() => resultWrapper.classList.add('active'), 50);
+
+      isRevealed = true;
+      document.getElementById('container').style.visibility = 'hidden';
+
+      let burstCount = 0;
+      const interval = setInterval(() => {
+        triggerExplosion(Math.random() * canvas.width, Math.random() * canvas.height * 0.6);
+        burstCount++;
+        if (burstCount > 15) {
+          clearInterval(interval);
+          resetTip.style.display = 'block';
+        }
+      }, 80);
+    });
+
+    window.addEventListener('click', () => {
+      if (!isRevealed) return;
+      resultWrapper.classList.remove('active');
+      setTimeout(() => {
+        resultWrapper.style.display = 'none';
+        document.getElementById('container').style.visibility = 'visible';
+        resetTip.style.display = 'none';
+        isRevealed = false;
+        particles = [];
+        flash.style.transition = 'none';
+      }, 500);
+    });
+  </script>
+</body>
+</html>

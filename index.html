@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>點擊紅鼻子 - 精準定位版</title>
+  <title>點擊紅鼻子</title>
   <style>
     body, html {
       margin: 0;
@@ -15,27 +15,32 @@
       font-family: 'Microsoft JhengHei', sans-serif;
     }
 
-    /* 主容器：左邊文字，右邊圖片 */
-    #container {
+    /* 主容器：左(文) 中(鼻) 右(圖) */
+    #main-ui {
       display: flex;
       width: 100%;
       height: 100%;
       align-items: center;
+      transition: opacity 0.3s;
     }
 
-    /* 左側提示 (縮小至 75%) */
-    #instruction {
+    /* 左側區域：提示文字 (縮小至 75% -> 2.25rem) */
+    #left-section {
       flex: 1;
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      padding-right: 30px;
+      padding-right: 20px;
+    }
+
+    #instruction {
       color: #ff4d4d;
-      font-size: 2.25rem;
+      font-size: 2.25rem; 
       font-weight: bold;
-      z-index: 100;
       text-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
       pointer-events: none;
+      display: flex;
+      align-items: center;
     }
 
     .arrow {
@@ -49,68 +54,51 @@
       50% { transform: translateX(20px); }
     }
 
-    /* 右側圖片區域：這是 0.png 的家 */
-    #character-area {
-      flex: 1;
-      height: 100%;
-      position: relative; /* 按鈕定位的基準 */
+    /* 中間區域：紅鼻子按鈕居中 */
+    #center-section {
+      flex: 0 0 200px; 
       display: flex;
-      justify-content: flex-start;
+      justify-content: center;
       align-items: center;
+      position: relative;
     }
 
-    #bg-character {
-      height: 80%;
-      max-width: 90%;
-      object-fit: contain;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-
-    /* 紅鼻子按鈕：現在鎖定在 character-area 內 */
     #drawButton {
-      position: absolute;
-      /* 調整以下數值直到對準 0.png 的鼻子 */
-      top: 50%; 
-      left: 25%; 
-      transform: translate(-50%, -50%); /* 確保是以中心點定位 */
       width: 130px;
       height: 130px;
-      background: radial-gradient(circle at 35% 35%, #ff5555, #cc0000 60%, #660000);
+      background: radial-gradient(circle at 35% 35%, #ff4444, #cc0000 60%, #660000);
       border: 5px solid #fff;
       border-radius: 50%;
       cursor: pointer;
-      z-index: 200;
+      z-index: 100;
       box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
-      outline: none;
       transition: transform 0.1s;
+      outline: none;
     }
 
     #drawButton:hover {
-      transform: translate(-50%, -50%) scale(1.1);
+      transform: scale(1.1);
     }
 
-    /* 再一次提示：右邊垂直 */
-    #reset-tip {
-      position: absolute;
-      top: 50%;
-      right: 2%;
-      transform: translateY(-50%);
-      color: #fff;
-      font-size: 1.125rem;
-      writing-mode: vertical-rl;
-      text-orientation: upright;
-      letter-spacing: 10px;
-      z-index: 600;
-      display: none;
-      background: rgba(255,255,255,0.1);
-      padding: 15px 8px;
-      border-radius: 30px;
-      backdrop-filter: blur(5px);
+    /* 右側區域：0.png 人物圖 */
+    #right-section {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding-left: 20px;
+    }
+
+    #bg-0 {
+      height: 85%;
+      max-width: 90%;
+      object-fit: contain;
+      user-select: none;
       pointer-events: none;
     }
 
-    /* 結果全螢幕 */
+    /* 結果全螢幕展示 */
     #resultWrapper {
       position: fixed;
       top: 0;
@@ -118,10 +106,11 @@
       width: 100%;
       height: 100%;
       display: none;
+      background: #000;
+      z-index: 500;
       justify-content: center;
       align-items: center;
-      background: #000;
-      z-index: 1000;
+      cursor: pointer;
     }
 
     #resultImage {
@@ -129,8 +118,8 @@
       max-height: 100%;
       object-fit: contain;
       opacity: 0;
-      transform: scale(0.5);
-      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform: scale(0.8);
+      transition: all 0.5s ease-out;
     }
 
     #resultWrapper.active #resultImage {
@@ -138,12 +127,29 @@
       transform: scale(1);
     }
 
+    /* 回首頁提示 */
+    #back-tip {
+      position: absolute;
+      top: 50%;
+      right: 30px;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 1.125rem;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 8px;
+      z-index: 600;
+      pointer-events: none;
+      display: none;
+      text-shadow: 2px 2px 5px #000;
+    }
+
     canvas {
       position: fixed;
       top: 0;
       left: 0;
       pointer-events: none;
-      z-index: 500;
+      z-index: 550;
     }
 
     #flash {
@@ -154,63 +160,78 @@
       height: 100%;
       background: #fff;
       opacity: 0;
-      z-index: 2000;
+      z-index: 1000;
       pointer-events: none;
     }
 
     .shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      animation: shake 0.4s both;
     }
 
     @keyframes shake {
       10%, 90% { transform: translate3d(-2px, 0, 0); }
-      20%, 80% { transform: translate3d(4px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-      40%, 60% { transform: translate3d(8px, 0, 0); }
+      30%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
     }
   </style>
 </head>
 <body>
 
   <div id="flash"></div>
-  
-  <div id="container">
-    <div id="instruction">
-      請按紅鼻子 <span class="arrow">→</span>
+
+  <div id="main-ui">
+    <!-- 左：文 -->
+    <div id="left-section">
+      <div id="instruction">
+        請點擊紅鼻子 <span class="arrow">→</span>
+      </div>
     </div>
-    <div id="character-area">
-      <!-- 放在根目錄的 0.png -->
-      <img id="bg-character" src="https://crazy-dream.github.io/abstract-Umimiya-Natsu./0.png" alt="Character">
-      <!-- 紅鼻子按鈕 -->
+    
+    <!-- 中：鼻 -->
+    <div id="center-section">
       <button id="drawButton"></button>
+    </div>
+
+    <!-- 右：圖 -->
+    <div id="right-section">
+      <img id="bg-0" src="https://crazy-dream.github.io/abstract-Umimiya-Natsu./0.png" alt="Character">
     </div>
   </div>
 
-  <div id="reset-tip">再點擊一次返回</div>
-
   <div id="resultWrapper">
-    <img id="resultImage" src="" alt="Joker Result">
+    <img id="resultImage" src="">
+    <div id="back-tip">點擊任意處回首頁</div>
   </div>
 
   <canvas id="fireworksCanvas"></canvas>
 
   <script>
-    const drawBtn = document.getElementById('drawButton');
-    const resultWrapper = document.getElementById('resultWrapper');
-    const resultImg = document.getElementById('resultImage');
-    const resetTip = document.getElementById('reset-tip');
-    const flash = document.getElementById('flash');
-    const canvas = document.getElementById('fireworksCanvas');
-    const ctx = canvas.getContext('2d');
+    const drawButton = document.getElementById("drawButton");
+    const mainUi = document.getElementById("main-ui");
+    const resultWrapper = document.getElementById("resultWrapper");
+    const resultImage = document.getElementById("resultImage");
+    const backTip = document.getElementById("back-tip");
+    const flash = document.getElementById("flash");
+    const canvas = document.getElementById("fireworksCanvas");
+    const ctx = canvas.getContext("2d");
 
     let particles = [];
-    let isRevealed = false;
+    let isDrawn = false;
 
     const baseUrl = "https://crazy-dream.github.io/abstract-Umimiya-Natsu./";
-    const jokerFolder = "joker/";
     
-    const imageFiles = [
-      "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "1000018659.jpg", "Am I (1).jpg"
+    // 嚴格對應你提供的 50 張圖片與副檔名
+    const images = [
+      "1.png", "2.png", "3.png", "4.png", "5.png",
+      "6.png", "7.jpg", "8.jpg", "9.jpg", "10.jpeg",
+      "11.jpeg", "12.jpg", "13.jpg", "14.jpg", "15.jpg",
+      "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg",
+      "21.jpg", "22.jpg", "23.png", "24.jpg", "25.jpg",
+      "26.jpg", "27.jpg", "28.jpg", "29.jpg", "30.jpg",
+      "31.png", "32.jpg", "33.jpg", "34.jpg", "35.jpg",
+      "36.jpg", "37.jpg", "38.png", "39.png", "40.png",
+      "41.png", "42.png", "43.png", "44.png", "45.jpg",
+      "46.png", "47.png", "48.png", "49.png", "50.jpg"
     ];
 
     function resize() {
@@ -220,102 +241,92 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function speakJokerLoud() {
+    function speakJoker() {
       window.speechSynthesis.cancel();
-      const msg = new SpeechSynthesisUtterance();
-      msg.text = "Joker";
+      const msg = new SpeechSynthesisUtterance("Joker");
       msg.lang = "en-US";
-      msg.pitch = 2.0; 
-      msg.rate = 1.9;  
-      msg.volume = 1.0; 
+      msg.rate = 1.9;
+      msg.pitch = 2.0;
+      msg.volume = 1.0;
       window.speechSynthesis.speak(msg);
     }
 
     class Particle {
       constructor(x, y) {
-        this.x = x;
-        this.y = y;
+        this.x = x; this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const velocity = Math.random() * 15 + 5;
-        this.vx = Math.cos(angle) * velocity;
-        this.vy = Math.sin(angle) * velocity;
-        this.gravity = 0.3;
+        const speed = Math.random() * 10 + 5;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
         this.alpha = 1;
-        this.size = Math.random() * 5 + 2;
       }
       update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += this.gravity;
-        this.alpha -= 0.015;
+        this.x += this.vx; this.y += this.vy; this.vy += 0.2; this.alpha -= 0.015;
       }
       draw() {
         ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI * 2); ctx.fill();
       }
     }
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update();
-        particles[i].draw();
-        if (particles[i].alpha <= 0) particles.splice(i, 1);
-      }
+      particles = particles.filter(p => p.alpha > 0);
+      particles.forEach(p => { p.update(); p.draw(); });
       requestAnimationFrame(animate);
     }
     animate();
 
-    function triggerExplosion(x, y) {
-      for (let i = 0; i < 100; i++) {
-        particles.push(new Particle(x, y));
+    function explode() {
+      for(let j=0; j<10; j++) {
+        setTimeout(() => {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height * 0.7;
+          for(let i=0; i<80; i++) particles.push(new Particle(x, y));
+        }, j * 150);
       }
     }
 
-    drawBtn.addEventListener('click', (e) => {
+    drawButton.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (isRevealed) return;
+      if (isDrawn) return;
+      isDrawn = true;
 
-      speakJokerLoud();
+      speakJoker();
 
       flash.style.opacity = '1';
       document.body.classList.add('shake');
       setTimeout(() => { 
         flash.style.opacity = '0'; 
-        flash.style.transition = 'opacity 1s'; 
+        flash.style.transition = 'opacity 0.8s';
         document.body.classList.remove('shake');
       }, 50);
 
-      const randomFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
-      resultImg.src = baseUrl + jokerFolder + randomFile;
+      const randomImg = images[Math.floor(Math.random() * images.length)];
+      // 組合路徑：baseUrl + "joker/" + 檔名
+      resultImage.src = baseUrl + "joker/" + randomImg;
       
-      resultWrapper.style.display = 'flex';
-      setTimeout(() => resultWrapper.classList.add('active'), 50);
-
-      isRevealed = true;
-      document.getElementById('container').style.visibility = 'hidden';
-
-      let burstCount = 0;
-      const interval = setInterval(() => {
-        triggerExplosion(Math.random() * canvas.width, Math.random() * canvas.height * 0.6);
-        burstCount++;
-        if (burstCount > 15) {
-          clearInterval(interval);
-          resetTip.style.display = 'block';
-        }
-      }, 80);
+      mainUi.style.opacity = '0';
+      setTimeout(() => {
+        mainUi.style.display = 'none';
+        resultWrapper.style.display = 'flex';
+        setTimeout(() => {
+          resultWrapper.classList.add('active');
+          backTip.style.display = 'block';
+          explode();
+        }, 50);
+      }, 300);
     });
 
-    window.addEventListener('click', () => {
-      if (!isRevealed) return;
+    resultWrapper.addEventListener("click", () => {
+      if (!isDrawn) return;
       resultWrapper.classList.remove('active');
       setTimeout(() => {
         resultWrapper.style.display = 'none';
-        document.getElementById('container').style.visibility = 'visible';
-        resetTip.style.display = 'none';
-        isRevealed = false;
+        backTip.style.display = 'none';
+        mainUi.style.display = 'flex';
+        setTimeout(() => mainUi.style.opacity = '1', 50);
+        isDrawn = false;
         particles = [];
         flash.style.transition = 'none';
       }, 500);

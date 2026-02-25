@@ -21,10 +21,9 @@
       width: 100%;
       height: 100%;
       align-items: center;
-      transition: opacity 0.3s;
+      transition: opacity 0.1s linear; /* 更快的隱藏 */
     }
 
-    /* 左側區域：提示文字 (縮小至 75% -> 2.25rem) */
     #left-section {
       flex: 1;
       display: flex;
@@ -54,7 +53,6 @@
       50% { transform: translateX(20px); }
     }
 
-    /* 中間區域：紅鼻子按鈕居中 */
     #center-section {
       flex: 0 0 200px; 
       display: flex;
@@ -72,15 +70,14 @@
       cursor: pointer;
       z-index: 100;
       box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
-      transition: transform 0.1s;
+      transition: transform 0.05s;
       outline: none;
     }
 
-    #drawButton:hover {
-      transform: scale(1.1);
+    #drawButton:active {
+      transform: scale(0.85);
     }
 
-    /* 右側區域：0.png 人物圖 */
     #right-section {
       flex: 1;
       height: 100%;
@@ -98,7 +95,7 @@
       pointer-events: none;
     }
 
-    /* 結果全螢幕展示 */
+    /* 結果展示區域 */
     #resultWrapper {
       position: fixed;
       top: 0;
@@ -114,12 +111,12 @@
     }
 
     #resultImage {
-      max-width: 100%;
-      max-height: 100%;
+      max-width: 95vw;
+      max-height: 95vh;
       object-fit: contain;
       opacity: 0;
-      transform: scale(0.8);
-      transition: all 0.5s ease-out;
+      transform: scale(1.15);
+      transition: opacity 0.15s ease-out, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     #resultWrapper.active #resultImage {
@@ -127,13 +124,13 @@
       transform: scale(1);
     }
 
-    /* 回首頁提示 */
+    /* 回首頁提示：半透明黑底背景 */
     #back-tip {
       position: absolute;
       top: 50%;
-      right: 30px;
+      right: 40px;
       transform: translateY(-50%);
-      color: white;
+      color: #fff;
       font-size: 1.125rem;
       writing-mode: vertical-rl;
       text-orientation: upright;
@@ -141,7 +138,11 @@
       z-index: 600;
       pointer-events: none;
       display: none;
-      text-shadow: 2px 2px 5px #000;
+      padding: 25px 15px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
     }
 
     canvas {
@@ -152,54 +153,37 @@
       z-index: 550;
     }
 
-    #flash {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      opacity: 0;
-      z-index: 1000;
-      pointer-events: none;
+    .heavy-shake {
+      animation: heavyShake 0.3s both;
     }
 
-    .shake {
-      animation: shake 0.4s both;
-    }
-
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-2px, 0, 0); }
-      30%, 70% { transform: translate3d(-6px, 0, 0); }
-      40%, 60% { transform: translate3d(6px, 0, 0); }
+    @keyframes heavyShake {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      20%, 60% { transform: translate3d(-12px, 6px, 0); }
+      40%, 80% { transform: translate3d(12px, -6px, 0); }
     }
   </style>
 </head>
 <body>
 
-  <div id="flash"></div>
-
   <div id="main-ui">
-    <!-- 左：文 -->
     <div id="left-section">
       <div id="instruction">
         請點擊紅鼻子 <span class="arrow">→</span>
       </div>
     </div>
     
-    <!-- 中：鼻 -->
     <div id="center-section">
       <button id="drawButton"></button>
     </div>
 
-    <!-- 右：圖 -->
     <div id="right-section">
-      <img id="bg-0" src="https://crazy-dream.github.io/abstract-Umimiya-Natsu./0.png" alt="Character">
+      <img id="bg-0" src="https://crazy-dream.github.io/joker-Umimiya-Natsu./0.png" alt="Character">
     </div>
   </div>
 
   <div id="resultWrapper">
-    <img id="resultImage" src="">
+    <img id="resultImage" src="" alt="Joker Result">
     <div id="back-tip">點擊任意處回首頁</div>
   </div>
 
@@ -211,16 +195,14 @@
     const resultWrapper = document.getElementById("resultWrapper");
     const resultImage = document.getElementById("resultImage");
     const backTip = document.getElementById("back-tip");
-    const flash = document.getElementById("flash");
     const canvas = document.getElementById("fireworksCanvas");
     const ctx = canvas.getContext("2d");
 
     let particles = [];
     let isDrawn = false;
 
-    const baseUrl = "https://crazy-dream.github.io/abstract-Umimiya-Natsu./";
+    const baseUrl = "https://crazy-dream.github.io/joker-Umimiya-Natsu./";
     
-    // 嚴格對應你提供的 50 張圖片與副檔名
     const images = [
       "1.png", "2.png", "3.png", "4.png", "5.png",
       "6.png", "7.jpg", "8.jpg", "9.jpg", "10.jpeg",
@@ -242,30 +224,50 @@
     resize();
 
     function speakJoker() {
-      window.speechSynthesis.cancel();
-      const msg = new SpeechSynthesisUtterance("Joker");
-      msg.lang = "en-US";
-      msg.rate = 1.9;
-      msg.pitch = 2.0;
-      msg.volume = 1.0;
-      window.speechSynthesis.speak(msg);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("Joker");
+        msg.lang = "en-US";
+        msg.rate = 2.0;
+        msg.pitch = 1.8;
+        window.speechSynthesis.speak(msg);
+      }
     }
 
-    class Particle {
+    class Confetti {
       constructor(x, y) {
-        this.x = x; this.y = y;
+        this.x = x;
+        this.y = y;
+        const colors = ['#ff0000', '#ffd700', '#ff00ff', '#00ffff', '#ffffff', '#ff69b4', '#00ff00', '#FFA500'];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 10 + 5;
+        const speed = Math.random() * 20 + 10; 
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.alpha = 1;
+        this.size = Math.random() * 7 + 4;
+        this.rotation = Math.random() * 360;
+        this.rotSpeed = Math.random() * 20 - 10;
+        this.gravity = 0.35; 
+        this.friction = 0.94;
       }
       update() {
-        this.x += this.vx; this.y += this.vy; this.vy += 0.2; this.alpha -= 0.015;
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.rotation += this.rotSpeed;
+        this.alpha -= 0.015; 
       }
       draw() {
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-        ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation * Math.PI / 180);
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size * 1.4);
+        ctx.restore();
       }
     }
 
@@ -277,45 +279,48 @@
     }
     animate();
 
+    // 煙火爆發：改為隨機多點爆發
     function explode() {
-      for(let j=0; j<10; j++) {
+      const count = 10; // 爆發點數量
+      for(let j=0; j<count; j++) {
         setTimeout(() => {
+          // 隨機分佈在螢幕各處
           const x = Math.random() * canvas.width;
           const y = Math.random() * canvas.height * 0.7;
-          for(let i=0; i<80; i++) particles.push(new Particle(x, y));
-        }, j * 150);
+          for(let i=0; i<35; i++) particles.push(new Confetti(x, y));
+        }, j * 40); // 極短間隔營造同時爆發感
       }
     }
 
-    drawButton.addEventListener("click", (e) => {
-      e.stopPropagation();
+    drawButton.addEventListener("click", () => {
       if (isDrawn) return;
       isDrawn = true;
 
       speakJoker();
 
-      flash.style.opacity = '1';
-      document.body.classList.add('shake');
-      setTimeout(() => { 
-        flash.style.opacity = '0'; 
-        flash.style.transition = 'opacity 0.8s';
-        document.body.classList.remove('shake');
-      }, 50);
-
+      // 選圖並立即賦值
       const randomImg = images[Math.floor(Math.random() * images.length)];
-      // 組合路徑：baseUrl + "joker/" + 檔名
       resultImage.src = baseUrl + "joker/" + randomImg;
-      
+
+      // 立即開始切換，不再等待預載
       mainUi.style.opacity = '0';
+      
       setTimeout(() => {
         mainUi.style.display = 'none';
         resultWrapper.style.display = 'flex';
-        setTimeout(() => {
+        
+        // 核心改動：強制在下一幀立即觸發所有效果，保證同步
+        requestAnimationFrame(() => {
           resultWrapper.classList.add('active');
+          document.body.classList.add('heavy-shake');
           backTip.style.display = 'block';
+          
+          // 煙火噴發與圖片同步
           explode();
-        }, 50);
-      }, 300);
+          
+          setTimeout(() => document.body.classList.remove('heavy-shake'), 300);
+        });
+      }, 80); // 縮短至 0.08 秒換頁
     });
 
     resultWrapper.addEventListener("click", () => {
@@ -325,11 +330,10 @@
         resultWrapper.style.display = 'none';
         backTip.style.display = 'none';
         mainUi.style.display = 'flex';
-        setTimeout(() => mainUi.style.opacity = '1', 50);
+        setTimeout(() => mainUi.style.opacity = '1', 30);
         isDrawn = false;
         particles = [];
-        flash.style.transition = 'none';
-      }, 500);
+      }, 150);
     });
   </script>
 </body>

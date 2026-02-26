@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>點擊紅鼻子</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary-red: #ff4d4d;
+      --deep-red: #cc0000;
+      --gold: #ffd700;
+    }
+
     body, html {
       margin: 0;
       padding: 0;
@@ -12,16 +19,29 @@
       height: 100%;
       overflow: hidden;
       background-color: #000;
-      font-family: 'Microsoft JhengHei', sans-serif;
+      font-family: 'Noto Sans TC', sans-serif;
+      color: white;
     }
 
-    /* 主容器：左(文) 中(鼻) 右(圖) */
+    #abstractCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 2s ease-in;
+    }
+
     #main-ui {
+      position: relative;
       display: flex;
       width: 100%;
       height: 100%;
       align-items: center;
-      transition: opacity 0.1s linear; /* 更快的隱藏 */
+      transition: opacity 0.1s linear;
+      z-index: 10;
     }
 
     #left-section {
@@ -29,53 +49,53 @@
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      padding-right: 20px;
+      padding-right: 40px;
     }
 
     #instruction {
-      color: #ff4d4d;
-      font-size: 2.25rem; 
-      font-weight: bold;
-      text-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
+      color: var(--primary-red);
+      font-size: 2.5rem; 
+      font-weight: 900;
+      text-shadow: 0 0 25px rgba(255, 77, 77, 0.7);
       pointer-events: none;
       display: flex;
       align-items: center;
+      letter-spacing: 2px;
     }
 
     .arrow {
-      font-size: 3rem;
-      margin-left: 15px;
-      animation: bounceX 0.8s infinite;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 3.5rem;
+      margin-left: 20px;
+      animation: bounceX 0.6s infinite ease-in-out;
     }
 
     @keyframes bounceX {
       0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(20px); }
+      50% { transform: translateX(15px); }
     }
 
     #center-section {
-      flex: 0 0 200px; 
+      flex: 0 0 250px; 
       display: flex;
       justify-content: center;
       align-items: center;
-      position: relative;
     }
 
     #drawButton {
-      width: 130px;
-      height: 130px;
-      background: radial-gradient(circle at 35% 35%, #ff4444, #cc0000 60%, #660000);
-      border: 5px solid #fff;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle at 30% 30%, #ff6666, var(--deep-red) 70%, #440000);
+      border: 6px solid #fff;
       border-radius: 50%;
       cursor: pointer;
-      z-index: 100;
-      box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
-      transition: transform 0.05s;
+      box-shadow: 0 0 60px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(0,0,0,0.5);
+      transition: transform 0.05s, opacity 0.5s;
       outline: none;
     }
 
     #drawButton:active {
-      transform: scale(0.85);
+      transform: scale(0.8);
     }
 
     #right-section {
@@ -84,18 +104,20 @@
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      padding-left: 20px;
+      padding-left: 40px;
     }
 
     #bg-0 {
-      height: 85%;
+      height: 80%;
       max-width: 90%;
       object-fit: contain;
-      user-select: none;
-      pointer-events: none;
+      cursor: pointer;
+      transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #bg-0:hover {
+      filter: drop-shadow(0 0 20px rgba(255, 77, 77, 0.8)) brightness(1.1);
     }
 
-    /* 結果展示區域 */
     #resultWrapper {
       position: fixed;
       top: 0;
@@ -111,65 +133,177 @@
     }
 
     #resultImage {
-      max-width: 95vw;
-      max-height: 95vh;
+      max-width: 90vw;
+      max-height: 90vh;
       object-fit: contain;
       opacity: 0;
-      transform: scale(1.15);
-      transition: opacity 0.15s ease-out, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform: scale(0.5) rotate(-5deg);
+      transition: opacity 0.2s, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     #resultWrapper.active #resultImage {
       opacity: 1;
-      transform: scale(1);
+      transform: scale(1) rotate(0deg);
     }
 
-    /* 回首頁提示：半透明黑底背景 */
-    #back-tip {
-      position: absolute;
-      top: 50%;
-      right: 40px;
-      transform: translateY(-50%);
-      color: #fff;
-      font-size: 1.125rem;
-      writing-mode: vertical-rl;
-      text-orientation: upright;
-      letter-spacing: 8px;
-      z-index: 600;
-      pointer-events: none;
+    #gallery-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.98);
+      z-index: 1000;
       display: none;
-      padding: 25px 15px;
-      background: rgba(0, 0, 0, 0.7);
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
+      flex-direction: column;
+      padding: 60px 40px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      backdrop-filter: blur(15px);
+    }
+    #gallery-title {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      background: linear-gradient(to bottom, #fff, var(--primary-red));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 3.5rem;
+      text-align: center;
+      margin-bottom: 40px;
+      letter-spacing: 5px;
+    }
+    #gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .gallery-item {
+      aspect-ratio: 1/1;
+      background: #111;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 1.5rem;
+      overflow: hidden;
+      border: 2px solid #222;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .gallery-item.unlocked { border-color: var(--primary-red); cursor: pointer; }
+    .gallery-item.unlocked:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(255, 77, 77, 0.4); }
+    .gallery-item.unlocking::after {
+      content: "VOICE";
+      position: absolute;
+      bottom: 5px;
+      font-size: 0.6rem;
+      color: var(--gold);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    canvas {
+    #preview-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 3000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    #preview-img {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      box-shadow: 0 0 80px rgba(255, 0, 0, 0.4);
+    }
+
+    #close-gallery {
+      position: absolute;
+      top: 30px;
+      right: 50px;
+      color: white;
+      font-size: 4rem;
+      cursor: pointer;
+      z-index: 1100;
+      transition: transform 0.3s;
+    }
+    #close-gallery:hover { transform: rotate(90deg); color: var(--primary-red); }
+
+    #custom-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #151515;
+      border: 2px solid var(--primary-red);
+      padding: 40px;
+      z-index: 2500;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      border-radius: 20px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 1);
+      color: white;
+      text-align: center;
+    }
+    #custom-modal p { font-size: 1.2rem; margin-bottom: 30px; font-weight: 900; }
+    #custom-modal button {
+      margin: 0 10px;
+      padding: 12px 30px;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+      font-weight: 900;
+      font-family: 'Noto Sans TC';
+      transition: transform 0.2s;
+    }
+    #custom-modal button:hover { transform: scale(1.1); }
+    .modal-confirm { background: var(--primary-red); color: white; }
+    .modal-cancel { background: #333; color: white; }
+
+    #fireworksCanvas {
       position: fixed;
       top: 0;
       left: 0;
       pointer-events: none;
-      z-index: 550;
+      z-index: 600;
     }
 
     .heavy-shake {
-      animation: heavyShake 0.3s both;
+      animation: heavyShake 0.4s both;
     }
 
     @keyframes heavyShake {
       0%, 100% { transform: translate3d(0, 0, 0); }
-      20%, 60% { transform: translate3d(-12px, 6px, 0); }
-      40%, 80% { transform: translate3d(12px, -6px, 0); }
+      10%, 30%, 50%, 70%, 90% { transform: translate3d(-15px, 0, 0); }
+      20%, 40%, 60%, 80% { transform: translate3d(15px, 0, 0); }
     }
   </style>
 </head>
 <body>
 
+  <canvas id="abstractCanvas"></canvas>
+
   <div id="main-ui">
     <div id="left-section">
       <div id="instruction">
-        請點擊紅鼻子 <span class="arrow">→</span>
+        點擊紅鼻子 <span class="arrow">→</span>
       </div>
     </div>
     
@@ -184,7 +318,24 @@
 
   <div id="resultWrapper">
     <img id="resultImage" src="" alt="Joker Result">
-    <div id="back-tip">點擊任意處回首頁</div>
+  </div>
+
+  <div id="gallery-overlay">
+    <div id="close-gallery">&times;</div>
+    <div id="gallery-title">JOKER圖鑑 (<span id="unlocked-count">0</span>/50)</div>
+    <div id="gallery-grid"></div>
+  </div>
+
+  <div id="preview-overlay">
+    <img id="preview-img" src="" alt="Preview">
+  </div>
+
+  <div id="custom-modal">
+    <p>音樂解鎖小丑</p>
+    <div style="display: flex;">
+      <button class="modal-confirm" id="confirm-unlock">確認</button>
+      <button class="modal-cancel" id="cancel-unlock">取消</button>
+    </div>
   </div>
 
   <canvas id="fireworksCanvas"></canvas>
@@ -194,80 +345,120 @@
     const mainUi = document.getElementById("main-ui");
     const resultWrapper = document.getElementById("resultWrapper");
     const resultImage = document.getElementById("resultImage");
-    const backTip = document.getElementById("back-tip");
     const canvas = document.getElementById("fireworksCanvas");
     const ctx = canvas.getContext("2d");
+    const absCanvas = document.getElementById("abstractCanvas");
+    const absCtx = absCanvas.getContext("2d");
+    
+    const galleryOverlay = document.getElementById("gallery-overlay");
+    const galleryGrid = document.getElementById("gallery-grid");
+    const unlockedCountText = document.getElementById("unlocked-count");
+    const bg0 = document.getElementById("bg-0");
+    const closeGallery = document.getElementById("close-gallery");
+
+    const previewOverlay = document.getElementById("preview-overlay");
+    const previewImg = document.getElementById("preview-img");
+
+    const customModal = document.getElementById("custom-modal");
+    const confirmUnlock = document.getElementById("confirm-unlock");
+    const cancelUnlock = document.getElementById("cancel-unlock");
 
     let particles = [];
+    let shapes = [];
     let isDrawn = false;
+    let fireworkTimer = null;
+    let currentPendingUnlockIndex = null;
+    let currentAudio = null;
+    let isMusicPlaying = false; 
 
     const baseUrl = "https://crazy-dream.github.io/joker-Umimiya-Natsu./";
-    
     const images = [
-      "1.png", "2.png", "3.png", "4.png", "5.png",
-      "6.png", "7.jpg", "8.jpg", "9.jpg", "10.jpeg",
-      "11.jpeg", "12.jpg", "13.jpg", "14.jpg", "15.jpg",
-      "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg",
-      "21.jpg", "22.jpg", "23.png", "24.jpg", "25.jpg",
-      "26.jpg", "27.jpg", "28.jpg", "29.jpg", "30.jpg",
-      "31.png", "32.jpg", "33.jpg", "34.jpg", "35.jpg",
-      "36.jpg", "37.jpg", "38.png", "39.png", "40.png",
-      "41.png", "42.png", "43.png", "44.png", "45.jpg",
-      "46.png", "47.png", "48.png", "49.png", "50.jpg"
+      "1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.jpg", "8.jpg", "9.jpg", "10.jpeg",
+      "11.jpeg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg",
+      "21.jpg", "22.jpg", "23.png", "24.jpg", "25.jpg", "26.jpg", "27.jpg", "28.jpg", "29.jpg", "30.jpg",
+      "31.png", "32.jpg", "33.jpg", "34.jpg", "35.jpg", "36.jpg", "37.jpg", "38.png", "39.png", "40.png",
+      "41.png", "42.png", "43.png", "44.png", "45.jpg", "46.png", "47.png", "48.png", "49.png", "50.jpg"
     ];
+
+    let unlocked = JSON.parse(localStorage.getItem('joker_unlocked') || '[]');
 
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      absCanvas.width = window.innerWidth;
+      absCanvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resize);
     resize();
 
-    function speakJoker() {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance("Joker");
-        msg.lang = "en-US";
-        msg.rate = 2.0;
-        msg.pitch = 1.8;
-        window.speechSynthesis.speak(msg);
+    class JokerShape {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * absCanvas.width;
+        this.y = Math.random() * absCanvas.height;
+        this.size = Math.random() * 150 + 50;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.02;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.speedY = (Math.random() - 0.5) * 0.5;
+        this.color = Math.random() > 0.5 ? 'rgba(255, 77, 77, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+        this.sides = Math.floor(Math.random() * 3) + 3; // 3~5角形
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotSpeed;
+        if (this.x < -200 || this.x > absCanvas.width + 200 || this.y < -200 || this.y > absCanvas.height + 200) {
+          this.reset();
+        }
+      }
+      draw() {
+        absCtx.save();
+        absCtx.translate(this.x, this.y);
+        absCtx.rotate(this.rotation);
+        absCtx.beginPath();
+        for (let i = 0; i < this.sides; i++) {
+          absCtx.lineTo(this.size * Math.cos(i * 2 * Math.PI / this.sides), this.size * Math.sin(i * 2 * Math.PI / this.sides));
+        }
+        absCtx.closePath();
+        absCtx.strokeStyle = this.color;
+        absCtx.lineWidth = 2;
+        absCtx.stroke();
+        absCtx.restore();
       }
     }
 
     class Confetti {
-      constructor(x, y) {
+      constructor(x, y, isSeaMode = false) {
         this.x = x;
         this.y = y;
-        const colors = ['#ff0000', '#ffd700', '#ff00ff', '#00ffff', '#ffffff', '#ff69b4', '#00ff00', '#FFA500'];
+        const colors = ['#ff4d4d', '#ffd700', '#ffffff', '#ff00ff', '#00ffff'];
         this.color = colors[Math.floor(Math.random() * colors.length)];
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 20 + 10; 
+        const speed = isSeaMode ? (Math.random() * 30 + 5) : (Math.random() * 20 + 8);
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.alpha = 1;
-        this.size = Math.random() * 7 + 4;
-        this.rotation = Math.random() * 360;
-        this.rotSpeed = Math.random() * 20 - 10;
-        this.gravity = 0.35; 
-        this.friction = 0.94;
+        this.size = Math.random() * 6 + 2;
+        this.decay = isSeaMode ? 0.015 : 0.04; // 消失速度加快 (原本 0.024 -> 0.04)
+        this.gravity = 0.35;
       }
       update() {
-        this.vx *= this.friction;
-        this.vy *= this.friction;
+        this.vx *= 0.94;
+        this.vy *= 0.94;
         this.vy += this.gravity;
         this.x += this.vx;
         this.y += this.vy;
-        this.rotation += this.rotSpeed;
-        this.alpha -= 0.015; 
+        this.alpha -= this.decay;
       }
       draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation * Math.PI / 180);
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = this.color;
-        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size * 1.4);
-        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -275,66 +466,150 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles = particles.filter(p => p.alpha > 0);
       particles.forEach(p => { p.update(); p.draw(); });
+
+      if (unlocked.length === 50) {
+        absCtx.clearRect(0, 0, absCanvas.width, absCanvas.height);
+        shapes.forEach(s => { s.update(); s.draw(); });
+      }
+
       requestAnimationFrame(animate);
     }
     animate();
 
-    // 煙火爆發：改為隨機多點爆發
-    function explode() {
-      const count = 10; // 爆發點數量
-      for(let j=0; j<count; j++) {
-        setTimeout(() => {
-          // 隨機分佈在螢幕各處
-          const x = Math.random() * canvas.width;
-          const y = Math.random() * canvas.height * 0.7;
-          for(let i=0; i<35; i++) particles.push(new Confetti(x, y));
-        }, j * 40); // 極短間隔營造同時爆發感
+    function explode(x, y, isSeaMode = false) {
+      const targetX = x || Math.random() * canvas.width;
+      const targetY = y || Math.random() * canvas.height * 0.7;
+      const count = isSeaMode ? 200 : 150;
+      for(let i=0; i<count; i++) particles.push(new Confetti(targetX, targetY, isSeaMode));
+    }
+
+    function checkFinalStatus() {
+      if (unlocked.length === 50) {
+        mainUi.style.display = 'none';
+        resultWrapper.style.display = 'none';
+        absCanvas.style.opacity = '1';
+        
+        if (shapes.length === 0) {
+          for(let i=0; i<20; i++) shapes.push(new JokerShape());
+        }
+
+        if (!fireworkTimer) {
+          fireworkTimer = setInterval(() => {
+            explode(Math.random() * canvas.width, Math.random() * canvas.height, true);
+          }, 40);
+        }
       }
     }
 
-    drawButton.addEventListener("click", () => {
+    function renderGallery() {
+      galleryGrid.innerHTML = '';
+      images.forEach((img, index) => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        const isUnlocked = unlocked.includes(img);
+        
+        if (isUnlocked) {
+          item.classList.add('unlocked');
+          const thumb = document.createElement('img');
+          thumb.src = baseUrl + "joker/" + img;
+          item.appendChild(thumb);
+          item.onclick = (e) => {
+            e.stopPropagation();
+            if (customModal.style.display === 'flex') return; // 修復：如果對話框開著就不放大
+            previewImg.src = baseUrl + "joker/" + img;
+            previewOverlay.style.display = 'flex';
+          };
+        } else {
+          item.classList.add('locked');
+          item.innerText = index + 1;
+          if (isMusicPlaying && currentPendingUnlockIndex === index) item.classList.add('unlocking');
+          item.onclick = (e) => {
+            e.stopPropagation();
+            if (isMusicPlaying) return; 
+            currentPendingUnlockIndex = index;
+            customModal.style.display = 'flex';
+          };
+        }
+        galleryGrid.appendChild(item);
+      });
+      unlockedCountText.innerText = unlocked.length;
+    }
+
+    confirmUnlock.onclick = () => {
+      const songs = ['1.mp3', '2.mp3', '3.mp3'];
+      isMusicPlaying = true;
+      customModal.style.display = 'none';
+      renderGallery(); 
+      currentAudio = new Audio(`${baseUrl}song/${songs[Math.floor(Math.random() * songs.length)]}`);
+      currentAudio.onended = () => {
+        const targetImg = images[currentPendingUnlockIndex];
+        if (!unlocked.includes(targetImg)) {
+          unlocked.push(targetImg);
+          localStorage.setItem('joker_unlocked', JSON.stringify(unlocked));
+        }
+        isMusicPlaying = false;
+        currentPendingUnlockIndex = null;
+        renderGallery();
+        if (unlocked.length === 50) checkFinalStatus();
+        else explode(); 
+      };
+      currentAudio.play();
+    };
+
+    cancelUnlock.onclick = () => { customModal.style.display = 'none'; currentPendingUnlockIndex = null; };
+    bg0.onclick = () => { renderGallery(); galleryOverlay.style.display = 'flex'; };
+    closeGallery.onclick = () => { galleryOverlay.style.display = 'none'; };
+    previewOverlay.onclick = () => { previewOverlay.style.display = 'none'; };
+
+    drawButton.onclick = () => {
       if (isDrawn) return;
       isDrawn = true;
-
-      speakJoker();
-
-      // 選圖並立即賦值
       const randomImg = images[Math.floor(Math.random() * images.length)];
       resultImage.src = baseUrl + "joker/" + randomImg;
+      if (!unlocked.includes(randomImg)) {
+        unlocked.push(randomImg);
+        localStorage.setItem('joker_unlocked', JSON.stringify(unlocked));
+      }
 
-      // 立即開始切換，不再等待預載
+      explode(window.innerWidth/2, window.innerHeight/2);
+      explode(window.innerWidth/4, window.innerHeight/3);
+      explode(window.innerWidth*0.75, window.innerHeight/3);
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("Joker");
+        msg.lang = "en-US";
+        msg.rate = 1.8;
+        msg.pitch = 0.2;
+        window.speechSynthesis.speak(msg);
+      }
+
       mainUi.style.opacity = '0';
-      
       setTimeout(() => {
         mainUi.style.display = 'none';
         resultWrapper.style.display = 'flex';
-        
-        // 核心改動：強制在下一幀立即觸發所有效果，保證同步
         requestAnimationFrame(() => {
           resultWrapper.classList.add('active');
           document.body.classList.add('heavy-shake');
-          backTip.style.display = 'block';
-          
-          // 煙火噴發與圖片同步
-          explode();
-          
-          setTimeout(() => document.body.classList.remove('heavy-shake'), 300);
+          setTimeout(() => document.body.classList.remove('heavy-shake'), 400);
         });
-      }, 80); // 縮短至 0.08 秒換頁
-    });
+      }, 50);
+    };
 
-    resultWrapper.addEventListener("click", () => {
-      if (!isDrawn) return;
+    resultWrapper.onclick = () => {
+      if (unlocked.length === 50) { checkFinalStatus(); return; }
       resultWrapper.classList.remove('active');
       setTimeout(() => {
         resultWrapper.style.display = 'none';
-        backTip.style.display = 'none';
         mainUi.style.display = 'flex';
         setTimeout(() => mainUi.style.opacity = '1', 30);
         isDrawn = false;
-        particles = [];
-      }, 150);
-    });
+      }, 200);
+    };
+
+    window.onload = () => {
+      checkFinalStatus();
+    };
   </script>
 </body>
 </html>
